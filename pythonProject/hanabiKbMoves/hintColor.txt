@@ -1,0 +1,73 @@
+hint_color_probability(Player, OtherPlayer, Color) :-
+    % Ottengo il numero di carte giocabili del colore suggerito.
+    get_number_of_hinted_color_cards_playable(OtherPlayer, Color, NumColoredCards),
+    % Ottengo il numero di carte rimaste nel mazzo.
+    remaining_deck_size(DeckSize),
+    % Ottengo il numero di info tokens.
+    hints_available(Hints),
+
+    findall(Index, (at(OtherPlayer, Index, Card), color(Card, CardColor), CardColor = Color), Indices),
+    nth0(0, Indices, FirstIndex),
+    (color_uncertainty(OtherPlayer, FirstIndex);
+    alter_hint_playablecards(NumColoredCards);
+    alter_hint_color_decksize(DeckSize);
+    alter_hint_hinttokens(Hints)).
+
+get_number_of_hinted_color_cards_playable(OtherPlayer, Color, Count) :-
+    findall(PlayableIndex, (card_is_playable_now(OtherPlayer, PlayableIndex, _), at(OtherPlayer, PlayableIndex, Card), color(Card, CardColor), CardColor = Color), PlayableIndices),
+    length(PlayableIndices, Count).
+
+% Predicato per dimezzare una probabilità
+0.5::half_prob.
+
+% Valuta quanto si è indecisi relativamente al fatto di avere quel colore suggerito in quell'index
+color_uncertainty(Player, Index) :-
+    at(Player, Index, Card),
+    ((color(Card, red), \+ red_idx(Player, Index));
+    (color(Card, yellow), \+ yellow_idx(Player, Index))),
+    % Dimezziamo la prob. di red_idx o yellow_idx che è in genere troppo alta
+    half_prob.
+
+% red_idx() è dato dalla somma delle probabilità (OR) di knows_at. Più è alta questa probabilità,
+% maggiore è probabile che quel giocatore creda effettivamente di possedere un rosso.
+% Nota: non è proprio una somma, qui si usa Inferenza a Massima Probabilità (MAP), per cui ad es. 0.1+0.1+0.1 = 1 - (1-0.1)^3 = 0.271
+red_idx(Player, Index) :-
+    knows_at(Player, (Player, Index, red1));
+    knows_at(Player, (Player, Index, red2));
+    knows_at(Player, (Player, Index, red3));
+    knows_at(Player, (Player, Index, red4));
+    knows_at(Player, (Player, Index, red5)).
+
+% Regola generale per verificare se un giocatore sa di avere una carta gialla in un dato indice
+yellow_idx(Player, Index) :-
+    knows_at(Player, (Player, Index, yellow1));
+    knows_at(Player, (Player, Index, yellow2));
+    knows_at(Player, (Player, Index, yellow3));
+    knows_at(Player, (Player, Index, yellow4));
+    knows_at(Player, (Player, Index, yellow5)).
+
+0.0::alter_hint_playablecards(0).
+0.05::alter_hint_playablecards(1).
+0.1::alter_hint_playablecards(2).
+0.1::alter_hint_playablecards(3).
+0.2::alter_hint_playablecards(4).
+0.2::alter_hint_playablecards(5).
+
+0.0::alter_hint_color_decksize(0).
+0.0::alter_hint_color_decksize(1).
+0.0::alter_hint_color_decksize(2).
+0.0::alter_hint_color_decksize(3).
+0.0::alter_hint_color_decksize(4).
+0.1::alter_hint_color_decksize(5).
+0.1::alter_hint_color_decksize(6).
+0.1::alter_hint_color_decksize(7).
+0.1::alter_hint_color_decksize(8).
+0.1::alter_hint_color_decksize(9).
+0.1::alter_hint_color_decksize(10).
+
+0.0::alter_hint_hinttokens(0).
+0.05::alter_hint_hinttokens(1).
+0.05::alter_hint_hinttokens(2).
+0.1::alter_hint_hinttokens(3).
+0.1::alter_hint_hinttokens(4).
+0.1::alter_hint_hinttokens(5).

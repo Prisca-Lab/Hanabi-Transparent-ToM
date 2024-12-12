@@ -1,0 +1,69 @@
+hint_rank_probability(Player, OtherPlayer, Rank) :-
+    % Ottengo il numero di carte giocabili del rank suggerito.
+    get_number_of_hinted_rank_cards_playable(OtherPlayer, Rank, NumRankedCards),
+    % Ottengo il numero di carte rimaste nel mazzo.
+    remaining_deck_size(DeckSize),
+    % Ottengo il numero di info tokens.
+    hints_available(Hints),
+
+    findall(Index, (at(OtherPlayer, Index, Card), rank(Card, CardRank), CardRank = Rank), Indices),
+    nth0(0, Indices, FirstIndex),
+    % (check_rank_uncertainties(OtherPlayer, Indices, Rank);
+    (rank_uncertainty(OtherPlayer, FirstIndex, Rank);
+    alter_hint_playablecards(NumRankedCards);
+    alter_hint_rank_decksize(DeckSize);
+    alter_hint_hinttokens(Hints)).
+
+get_number_of_hinted_rank_cards_playable(OtherPlayer, Rank, Count) :-
+    findall(PlayableIndex, (card_is_playable_now(OtherPlayer, PlayableIndex, _), at(OtherPlayer, PlayableIndex, Card), rank(Card, CardRank), CardRank = Rank), PlayableIndices),
+    length(PlayableIndices, Count).
+
+% Predicato per dimezzare una probabilità
+0.5::half_prob.
+
+% Valuta quanto si è indecisi relativamente al fatto di avere quel rank suggerito in quell'index
+rank_uncertainty(Player, Index, Rank) :-
+    at(Player, Index, Card),
+    rank(Card, Rank),
+    \+ rank_idx(Player, Index, Rank),
+    % Dimezziamo la prob. di rank_idx che è in genere troppo alta
+    half_prob.
+
+% Calcola la probabilità (la credenza di Player) di avere una carta di Rank in posizione Index
+rank_idx(Player, Index, Rank) :-
+    (Rank = 1, at(Player, Index, Card), ((color(Card, red), knows_at(Player, (Player, Index, red1)));
+                                         (color(Card, yellow), knows_at(Player, (Player, Index, yellow1)))));
+    (Rank = 2, at(Player, Index, Card), ((color(Card, red), knows_at(Player, (Player, Index, red2)));
+                                         (color(Card, yellow), knows_at(Player, (Player, Index, yellow2)))));
+    (Rank = 3, at(Player, Index, Card), ((color(Card, red), knows_at(Player, (Player, Index, red3)));
+                                         (color(Card, yellow), knows_at(Player, (Player, Index, yellow3)))));
+    (Rank = 4, at(Player, Index, Card), ((color(Card, red), knows_at(Player, (Player, Index, red4)));
+                                         (color(Card, yellow), knows_at(Player, (Player, Index, yellow4)))));
+    (Rank = 5, at(Player, Index, Card), ((color(Card, red), knows_at(Player, (Player, Index, red5)));
+                                         (color(Card, yellow), knows_at(Player, (Player, Index, yellow5))))).
+
+0.0::alter_hint_playablecards(0).
+0.05::alter_hint_playablecards(1).
+0.1::alter_hint_playablecards(2).
+0.1::alter_hint_playablecards(3).
+0.2::alter_hint_playablecards(4).
+0.2::alter_hint_playablecards(5).
+
+0.0::alter_hint_rank_decksize(0).
+0.0::alter_hint_rank_decksize(1).
+0.0::alter_hint_rank_decksize(2).
+0.0::alter_hint_rank_decksize(3).
+0.0::alter_hint_rank_decksize(4).
+0.1::alter_hint_rank_decksize(5).
+0.1::alter_hint_rank_decksize(6).
+0.1::alter_hint_rank_decksize(7).
+0.1::alter_hint_rank_decksize(8).
+0.1::alter_hint_rank_decksize(9).
+0.1::alter_hint_rank_decksize(10).
+
+0.0::alter_hint_hinttokens(0).
+0.05::alter_hint_hinttokens(1).
+0.05::alter_hint_hinttokens(2).
+0.1::alter_hint_hinttokens(3).
+0.1::alter_hint_hinttokens(4).
+0.1::alter_hint_hinttokens(5).

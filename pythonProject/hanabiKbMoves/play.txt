@@ -1,0 +1,53 @@
+play_card_probability(Player, Index, ID) :-
+    % Prima di ragionarci, vediamo innanzitutto se la carta sia immediatamente giocabile
+    card_is_playable_now(Player, Index, ID),
+
+    % Ottengo il numero di carte rimaste nel mazzo
+    remaining_deck_size(DeckSize),
+    % Ottengo il numero di info tokens
+    hints_available(Hints),
+
+    % A questo punto, guardiamo nel top dello stack red e yellow e vediamo quali sono le carte giocabili.
+    % Ad es., se c'è R2 e Y4 negli stack, allora considererò solamente le probabilità di R3 e Y5 in questo Index.
+    get_top_rank_of_firework(red, LastRedRank),
+    get_top_rank_of_firework(yellow, LastYellowRank),
+
+    % Almeno uno tra LastRedRank e LastYellowRank non è uguale a 5, altrimenti not(is_game_over) sarebbe stato falso.
+    % Se entrambi sono diversi da 5, considero le credenze per entrambi gli stacks, altrimenti solamente per uno.
+    (
+      (
+        (LastRedRank \= 5, LastYellowRank \= 5,
+          ((knows_at(Player, (Player, Index, Card)), color(Card, red), rank(Card, CardRank), CardRank =:= LastRedRank + 1);
+          (knows_at(Player, (Player, Index, Card)), color(Card, yellow), rank(Card, CardRank), CardRank =:= LastYellowRank + 1))
+        );
+        (LastRedRank \= 5, LastYellowRank = 5,
+          (knows_at(Player, (Player, Index, Card)), color(Card, red), rank(Card, CardRank), CardRank =:= LastRedRank + 1)
+        );
+        (LastYellowRank \= 5, LastRedRank = 5,
+          (knows_at(Player, (Player, Index, Card)), color(Card, yellow), rank(Card, CardRank), CardRank =:= LastYellowRank + 1)
+        )
+      );
+      % Alteriamo ora la probabilità ottenuta con questi due fatti probabilistici
+      alter_play_hinttokens(Hints);
+      alter_play_decksize(DeckSize)
+    ).
+
+% ---------------------------------
+0.6::alter_play_decksize(0).
+0.6::alter_play_decksize(1).
+0.4::alter_play_decksize(2).
+0.4::alter_play_decksize(3).
+0.3::alter_play_decksize(4).
+0.3::alter_play_decksize(5).
+0.2::alter_play_decksize(6).
+0.2::alter_play_decksize(7).
+0.1::alter_play_decksize(8).
+0.1::alter_play_decksize(9).
+0.0::alter_play_decksize(10).
+% ---------------------------------
+0.2::alter_play_hinttokens(0).
+0.18::alter_play_hinttokens(1).
+0.15::alter_play_hinttokens(2).
+0.08::alter_play_hinttokens(3).
+0.05::alter_play_hinttokens(4).
+0.03::alter_play_hinttokens(5).

@@ -1,0 +1,101 @@
+discard_card_probability(Player, Index, ID) :-
+    % Ottengo il numero di carte rimaste nel mazzo
+    remaining_deck_size(DeckSize),
+    % Ottengo il numero di info tokens
+    hints_available(Hints),
+
+    % A questo punto, guardiamo nel top dello stack red e yellow e vediamo quali sono le carte giocabili
+    get_top_rank_of_firework(red, LastRedRank),
+    get_top_rank_of_firework(yellow, LastYellowRank),
+
+    % Come per play_card_probability(), anche qui almeno uno tra LastRedRank e LastYellowRank non è uguale a 5
+    (
+      (
+        (LastRedRank \= 5, LastYellowRank \= 5,
+          (((knows_at(Player, (Player, Index, red1)),
+           % Se il rank che voglio scartare non è giocabile, nessun problema. Se è giocabile, penalizzo in base al rank.
+           % La penalizzazione avviene con l'and, che consiste in un prodotto che abbasserà la probabilità corrente.
+           (1 =< LastRedRank; alter_discard_prob_playable_card(1)));
+           (knows_at(Player, (Player, Index, red2)),
+           (2 =< LastRedRank; alter_discard_prob_playable_card(2)));
+           (knows_at(Player, (Player, Index, red3)),
+           (3 =< LastRedRank; alter_discard_prob_playable_card(3)));
+           (knows_at(Player, (Player, Index, red4)),
+           (4 =< LastRedRank; alter_discard_prob_playable_card(4)))),
+            % Penalizzo in AND in base a quanto è probabile che ho un rank 5. Siccome tanto più è alto il numero più
+            % il prodotto penalizza, allora considero il complemento di questa probabilità.
+            \+ knows_at(Player, (Player, Index, red5))
+          );
+          (((knows_at(Player, (Player, Index, yellow1)),
+           (1 =< LastYellowRank; alter_discard_prob_playable_card(1)));
+           (knows_at(Player, (Player, Index, yellow2)),
+           (2 =< LastYellowRank; alter_discard_prob_playable_card(2)));
+           (knows_at(Player, (Player, Index, yellow3)),
+           (3 =< LastYellowRank; alter_discard_prob_playable_card(3)));
+           (knows_at(Player, (Player, Index, yellow4)),
+           (4 =< LastYellowRank; alter_discard_prob_playable_card(4)))),
+            \+ knows_at(Player, (Player, Index, yellow5))
+          )
+        );
+        (LastRedRank \= 5, LastYellowRank = 5,
+          (((knows_at(Player, (Player, Index, red1)),
+           % Se il rank che voglio scartare non è giocabile, nessun problema. Se è giocabile, penalizzo in base al rank.
+           % La penalizzazione avviene con l'and, che consiste in un prodotto che abbasserà la probabilità corrente.
+           (1 =< LastRedRank; alter_discard_prob_playable_card(1)));
+           (knows_at(Player, (Player, Index, red2)),
+           (2 =< LastRedRank; alter_discard_prob_playable_card(2)));
+           (knows_at(Player, (Player, Index, red3)),
+           (3 =< LastRedRank; alter_discard_prob_playable_card(3)));
+           (knows_at(Player, (Player, Index, red4)),
+           (4 =< LastRedRank; alter_discard_prob_playable_card(4)))),
+            \+ knows_at(Player, (Player, Index, red5))  % Penalizzo in AND in base a quanto è probabile che ho un rank 5
+          )
+        );
+        (LastYellowRank \= 5, LastRedRank = 5,
+          (((knows_at(Player, (Player, Index, yellow1)),
+           (1 =< LastYellowRank; alter_discard_prob_playable_card(1)));
+           (knows_at(Player, (Player, Index, yellow2)),
+           (2 =< LastYellowRank; alter_discard_prob_playable_card(2)));
+           (knows_at(Player, (Player, Index, yellow3)),
+           (3 =< LastYellowRank; alter_discard_prob_playable_card(3)));
+           (knows_at(Player, (Player, Index, yellow4)),
+           (4 =< LastYellowRank; alter_discard_prob_playable_card(4)))),
+            \+ knows_at(Player, (Player, Index, yellow5))
+          )
+        )
+      );
+      % Alteriamo ora la probabilità ottenuta con questi due fatti probabilistici
+      alter_discard_hinttokens(Hints);
+      alter_discard_decksize(DeckSize)
+    ).
+
+
+% ---------------------------------
+0.2::alter_discard_hinttokens(0).
+0.15::alter_discard_hinttokens(1).
+0.1::alter_discard_hinttokens(2).
+0.05::alter_discard_hinttokens(3).
+0.05::alter_discard_hinttokens(4).
+0.0::alter_discard_hinttokens(5).
+% ---------------------------------
+0.0::alter_discard_decksize(0).
+0.0::alter_discard_decksize(1).
+0.0::alter_discard_decksize(2).
+0.1::alter_discard_decksize(3).
+0.1::alter_discard_decksize(4).
+0.1::alter_discard_decksize(5).
+0.15::alter_discard_decksize(6).
+0.15::alter_discard_decksize(7).
+0.2::alter_discard_decksize(8).
+0.2::alter_discard_decksize(9).
+0.2::alter_discard_decksize(10).
+% ---------------------------------
+% Con questo predicato codifichiamo l'idea secondo cui se si scarta una carta che è giocabile, allora si vuole penalizzare
+% tale azione. Per farlo, siccome questo predicato è pensato per essere usato con un AND, allora l'idea è di dare
+% valori probabilistici più alti per penalizzare meno, e più bassi per penalizzare di più, in quanto AND = Prodotto.
+% Per il rank 5, sarebbe sicuramente insensato scartare quella carta, per cui daremo 0.0.
+0.85::alter_discard_prob_playable_card(1).  % Di 1 ne abbiamo tre per ciascun colore, penalizziamo di poco.
+0.5::alter_discard_prob_playable_card(2).  % Di 2, 3, 4 ce ne sono due per ciascun colore. Dimezziamo la prob. con 0.5
+0.5::alter_discard_prob_playable_card(3).
+0.5::alter_discard_prob_playable_card(4).
+0.0::alter_discard_prob_playable_card(5).  % Di 5 ne abbiamo solamente uno per ciascun colore, non bisogna mai scartarli.

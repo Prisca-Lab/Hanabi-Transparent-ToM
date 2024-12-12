@@ -1,0 +1,9 @@
+{
+  "name": "pythonProject",
+  "dependencies": {
+    "dotenv": {
+      "version": "16.4.5",
+      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-16.4.5.tgz"
+    }
+  }
+}
